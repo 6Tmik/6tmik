@@ -1,4 +1,4 @@
-!/usr/bin/env bash
+#!/usr/bin/env bash
 
 # Installation de Tor
 echo "Installation de Tor..."
