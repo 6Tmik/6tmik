@@ -1,0 +1,738 @@
+net persistent
+
+ChatGPT a dit :
+ChatGPT
+Tuto complet (sans script et avec précisions sur les services conflictuels)
+1. Désactiver IPv6
+Modifier /etc/sysctl.conf pour désactiver complètement IPv6 :
+
+bash
+Copier le code
+echo "net.ipv6.conf.all.disable_ipv6 = 1" >> /etc/sysctl.conf
+echo "net.ipv6.conf.default.disable_ipv6 = 1" >> /etc/sysctl.conf
+echo "net.ipv6.conf.lo.disable_ipv6 = 1" >> /etc/sysctl.conf
+echo "net.ipv6.conf.all.forwarding = 0" >> /etc/sysctl.conf
+echo "net.ipv6.conf.all.accept_ra = 0" >> /etc/sysctl.conf
+echo "net.ipv6.conf.default.accept_ra = 0" >> /etc/sysctl.conf
+Modifier Grub pour désactiver IPv6 au niveau du kernel : Éditez /etc/default/grub :
+
+bash
+Copier le code
+sed -i 's/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX="ipv6.disable=1"/' /etc/default/grub
+update-grub
+Désactiver IPv6 dans NetworkManager : Éditez /etc/NetworkManager/NetworkManager.conf et ajoutez :
+
+ini
+Copier le code
+[connection]
+ipv6.method=ignore
+Appliquer immédiatement les modifications :
+
+bash
+Copier le code
+sysctl -p
+2. Désactiver LLMNR, mDNS et optimiser systemd-resolved
+Éditer /etc/systemd/resolved.conf : Ajoutez ou modifiez les lignes suivantes :
+
+ini
+Copier le code
+[Resolve]
+LLMNR=no
+MulticastDNS=no
+DNSOverTLS=no
+Cache=no
+Redémarrer systemd-resolved :
+
+bash
+Copier le code
+systemctl restart systemd-resolved
+3. Configurer iptables pour la VM NAT
+Ajouter les règles iptables :
+
+bash
+Copier le code
+iptables -F
+iptables -t nat -F
+iptables -X
+
+# Bloquer tout par défaut
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+iptables -P OUTPUT DROP
+
+# Autoriser le trafic local (loopback)
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A OUTPUT -o lo -j ACCEPT
+
+# Autoriser les connexions de la VM NAT (remplacez <interface_VM> par le nom de l'interface de la VM NAT)
+iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i <interface_VM> -o eth0 -j ACCEPT
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+
+# Autoriser uniquement le trafic DNS, HTTP, et HTTPS sortant
+iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
+iptables -A OUTPUT -p tcp --dport 53 -j ACCEPT
+iptables -A OUTPUT -p tcp --dport 80 -j ACCEPT
+iptables -A OUTPUT -p tcp --dport 443 -j ACCEPT
+Configurer la persistance avec netfilter-persistent : Installez netfilter-persistent (si ce n'est pas déjà fait) :
+
+bash
+Copier le code
+apt install netfilter-persistent -y
+Sauvegardez les règles :
+
+bash
+Copier le code
+netfilter-persistent save
+Les règles seront automatiquement rechargées au démarrage.
+
+4. Désactiver les services inutiles
+Désactiver dnsmasq (commenté si nécessaire pour la NAT) : Si dnsmasq n’est pas utilisé pour la configuration NAT de la VM :
+
+bash
+Copier le code
+systemctl stop dnsmasq
+systemctl disable dnsmasq
+apt remove dnsmasq -y
+Sinon, laissez-le actif et commentez cette commande.
+
+Désactiver hostapd (point d'accès Wi-Fi, inutile ici) :
+
+bash
+Copier le code
+systemctl stop hostapd
+systemctl disable hostapd
+apt remove hostapd -y
+Désactiver avahi-daemon (Multicast DNS, inutilisé) :
+
+bash
+Copier le code
+systemctl stop avahi-daemon
+systemctl disable avahi-daemon
+apt remove avahi-daemon -y
+Désactiver smbd et nmbd (partage Windows inutile) :
+
+bash
+Copier le code
+systemctl stop smbd nmbd
+systemctl disable smbd nmbd
+apt remove samba -y
+Autres services à vérifier (désactiver si inutiles) :
+
+cups (impression) :
+bash
+Copier le code
+systemctl stop cups
+systemctl disable cups
+apt remove cups -y
+bluetooth (Bluetooth) :
+bash
+Copier le code
+systemctl stop bluetooth
+systemctl disable bluetooth
+apt remove bluetooth -y
+Vérifier tous les services actifs :
+
+bash
+Copier le code
+systemctl list-units --type=service
+Désactivez ou supprimez tout service non essentiel à votre configuration.
+
+5. Vérifications finales
+Vérifiez les règles iptables :
+
+bash
+Copier le code
+iptables -L -v
+iptables -t nat -L -v
+Testez la connectivité de la VM :
+
+Vérifiez que la VM peut accéder à Internet via NAT (ping ou navigation).
+Redémarrez la machine et vérifiez que tout fonctionne comme prévu.
+
+Si des ajustements sont nécessaires pour ton cas spécifique ou si un point reste flou, fais-le-moi savoir !
+
+
+
+
+
+
+Vous avez dit :
+J'ai dit pas de script donc tu met la commande qui modifie le fichier et ce qui doit être jouter manuellement
+
+Donc pour lipv6 les optimisations genre 
+Tuto complet : Sécuriser une machine Linux en WWAN avec NAT pour une VM
+
+
+---
+
+1. Configurer le WWAN avec une adresse MAC aléatoire
+
+1. Modifier /etc/NetworkManager/NetworkManager.conf :
+
+echo -e "[device]\nwifi.scan-rand-mac-address=yes" >> /etc/NetworkManager/NetworkManager.conf
+
+
+2. Ajouter une configuration spécifique pour la connexion WWAN dans /etc/NetworkManager/system-connections/<nom_de_la_connexion> :
+
+nmcli connection modify <nom_de_la_connexion> 802-11-wireless.mac-address-randomization 1
+nmcli connection modify <nom_de_la_connexion> 802-11-wireless.cloned-mac-address random
+
+
+3. Redémarrer NetworkManager :
+
+systemctl restart NetworkManager
+
+
+
+
+---
+
+2. Désactiver complètement l'IPv6
+
+1. Modifier /etc/sysctl.conf :
+
+echo "net.ipv6.conf.all.disable_ipv6 = 1" >> /etc/sysctl.conf
+echo "net.ipv6.conf.default.disable_ipv6 = 1" >> /etc/sysctl.conf
+echo "net.ipv6.conf.lo.disable_ipv6 = 1" >> /etc/sysctl.conf
+echo "net.ipv6.conf.all.forwarding = 0" >> /etc/sysctl.conf
+echo "net.ipv6.conf.all.accept_ra = 0" >> /etc/sysctl.conf
+echo "net.ipv6.conf.default.accept_ra = 0" >> /etc/sysctl.conf
+
+
+2. Modifier le fichier de configuration Grub /etc/default/grub :
+
+sed -i 's/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX="ipv6.disable=1"/' /etc/default/grub
+update-grub
+
+
+3. Désactiver IPv6 dans NetworkManager :
+
+echo -e "[connection]\nipv6.method=ignore" >> /etc/NetworkManager/NetworkManager.conf
+systemctl restart NetworkManager
+
+
+4. Appliquer les changements immédiatement :
+
+sysctl -p
+
+
+
+
+---
+
+3. Désactiver le forwarding et optimiser /etc/sysctl.conf
+
+1. Ajouter des optimisations supplémentaires dans /etc/sysctl.conf :
+
+echo "
+# Désactiver le forwarding
+net.ipv4.ip_forward = 0
+net.ipv6.conf.all.forwarding = 0
+
+# Désactiver ICMP redirects
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv6.conf.all.accept_redirects = 0
+net.ipv6.conf.default.accept_redirects = 0
+
+# Désactiver source routing
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv4.conf.default.accept_source_route = 0
+net.ipv6.conf.all.accept_source_route = 0
+net.ipv6.conf.default.accept_source_route = 0
+
+# Activer la protection SYN
+net.ipv4.tcp_syncookies = 1
+
+# Activer la protection contre les attaques broadcast
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+
+# Activer la protection contre les attaques d'arp poisoning
+net.ipv4.conf.all.arp_filter = 1
+net.ipv4.conf.default.arp_filter = 1
+
+# Limiter le backlog SYN
+net.ipv4.tcp_max_syn_backlog = 2048
+
+# Limiter le nombre de connexions
+net.core.somaxconn = 1024
+" >> /etc/sysctl.conf
+
+
+2. Appliquer les changements :
+
+sysctl -p
+
+
+
+
+---
+
+4. Désactiver LLMNR et mDNS
+
+1. Modifier /etc/systemd/resolved.conf :
+
+sed -i 's/#LLMNR=.*/LLMNR=no/' /etc/systemd/resolved.conf
+sed -i 's/#MulticastDNS=.*/MulticastDNS=no/' /etc/systemd/resolved.conf
+echo -e "DNSOverTLS=no\nCache=no" >> /etc/systemd/resolved.conf
+
+
+2. Redémarrer systemd-resolved :
+
+systemctl restart systemd-resolved
+
+
+
+
+---
+
+5. Configurer iptables pour NAT et la VM
+
+1. Ajouter les règles iptables :
+
+iptables -F
+iptables -t nat -F
+iptables -X
+
+# Bloquer tout par défaut
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+iptables -P OUTPUT DROP
+
+# Autoriser le trafic local
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A OUTPUT -o lo -j ACCEPT
+
+# Autoriser les connexions de la VM (remplacer <interface_VM> par l'interface de la VM NAT)
+iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i <interface_VM> -o eth0 -j ACCEPT
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+
+# Autoriser uniquement le trafic DNS, HTTP, et HTTPS sortant
+iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
+iptables -A OUTPUT -p tcp --dport 53 -j ACCEPT
+iptables -A OUTPUT -p tcp --dport 80 -j ACCEPT
+iptables -A OUTPUT -p tcp --dport 443 -j ACCEPT
+
+
+2. Sauvegarder les règles pour qu'elles persistent au redémarrage :
+
+mkdir -p /etc/iptables
+iptables-save > /etc/iptables/rules.v4
+echo "#!/bin/bash\niptables-restore < /etc/iptables/rules.v4" > /etc/rc.local
+chmod +x /etc/rc.local
+
+
+
+
+---
+
+6. Désactiver les services inutiles
+
+1. Désactiver les services non nécessaires :
+
+systemctl stop avahi-daemon smbd nmbd hostapd dnsmasq cups bluetooth
+systemctl disable avahi-daemon smbd nmbd hostapd dnsmasq cups bluetooth
+apt remove avahi-daemon samba hostapd dnsmasq cups bluetooth -y
+
+
+2. Vérifier les services actifs pour en désactiver d'autres si nécessaire :
+
+systemctl list-units --type=service
+
+
+
+
+---
+
+Ce tuto est maintenant complet et prêt pour un copier-coller. Si un point reste flou ou doit être ajusté pour ton cas spécifique, n'hésite pas !
+
+Bref tu me met tout pour que je copie colle dans une note mais sans script
+ChatGPT a dit :
+ChatGPT
+Tuto complet : Sécuriser une machine Linux en WWAN avec NAT pour une VM
+1. Configurer le WWAN avec une adresse MAC aléatoire
+Modifier /etc/NetworkManager/NetworkManager.conf :
+
+bash
+Copier le code
+echo -e "[device]\nwifi.scan-rand-mac-address=yes" >> /etc/NetworkManager/NetworkManager.conf
+Ajouter une configuration spécifique pour la connexion WWAN dans /etc/NetworkManager/system-connections/<nom_de_la_connexion> :
+
+bash
+Copier le code
+nmcli connection modify <nom_de_la_connexion> 802-11-wireless.mac-address-randomization 1
+nmcli connection modify <nom_de_la_connexion> 802-11-wireless.cloned-mac-address random
+Redémarrer NetworkManager :
+
+bash
+Copier le code
+systemctl restart NetworkManager
+2. Désactiver complètement l'IPv6
+Modifier /etc/sysctl.conf :
+
+bash
+Copier le code
+echo "net.ipv6.conf.all.disable_ipv6 = 1" >> /etc/sysctl.conf
+echo "net.ipv6.conf.default.disable_ipv6 = 1" >> /etc/sysctl.conf
+echo "net.ipv6.conf.lo.disable_ipv6 = 1" >> /etc/sysctl.conf
+echo "net.ipv6.conf.all.forwarding = 0" >> /etc/sysctl.conf
+echo "net.ipv6.conf.all.accept_ra = 0" >> /etc/sysctl.conf
+echo "net.ipv6.conf.default.accept_ra = 0" >> /etc/sysctl.conf
+Modifier le fichier de configuration Grub /etc/default/grub :
+
+bash
+Copier le code
+sed -i 's/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX="ipv6.disable=1"/' /etc/default/grub
+update-grub
+Désactiver IPv6 dans NetworkManager :
+
+bash
+Copier le code
+echo -e "[connection]\nipv6.method=ignore" >> /etc/NetworkManager/NetworkManager.conf
+systemctl restart NetworkManager
+Appliquer les changements immédiatement :
+
+bash
+Copier le code
+sysctl -p
+3. Désactiver le forwarding et optimiser /etc/sysctl.conf
+Ajouter des optimisations supplémentaires dans /etc/sysctl.conf :
+
+bash
+Copier le code
+echo "
+# Désactiver le forwarding
+net.ipv4.ip_forward = 0
+net.ipv6.conf.all.forwarding = 0
+
+# Désactiver ICMP redirects
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv6.conf.all.accept_redirects = 0
+net.ipv6.conf.default.accept_redirects = 0
+
+# Désactiver source routing
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv4.conf.default.accept_source_route = 0
+net.ipv6.conf.all.accept_source_route = 0
+net.ipv6.conf.default.accept_source_route = 0
+
+# Activer la protection SYN
+net.ipv4.tcp_syncookies = 1
+
+# Activer la protection contre les attaques broadcast
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+
+# Activer la protection contre les attaques d'arp poisoning
+net.ipv4.conf.all.arp_filter = 1
+net.ipv4.conf.default.arp_filter = 1
+
+# Limiter le backlog SYN
+net.ipv4.tcp_max_syn_backlog = 2048
+
+# Limiter le nombre de connexions
+net.core.somaxconn = 1024
+" >> /etc/sysctl.conf
+Appliquer les changements :
+
+bash
+Copier le code
+sysctl -p
+4. Désactiver LLMNR et mDNS
+Modifier /etc/systemd/resolved.conf :
+
+bash
+Copier le code
+sed -i 's/#LLMNR=.*/LLMNR=no/' /etc/systemd/resolved.conf
+sed -i 's/#MulticastDNS=.*/MulticastDNS=no/' /etc/systemd/resolved.conf
+echo -e "DNSOverTLS=no\nCache=no" >> /etc/systemd/resolved.conf
+Redémarrer systemd-resolved :
+
+bash
+Copier le code
+systemctl restart systemd-resolved
+5. Configurer iptables pour NAT et la VM
+Ajouter les règles iptables :
+bash
+Copier le code
+iptables -F
+iptables -t nat -F
+iptables -X
+
+# Bloquer tout par défaut
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+iptables -P OUTPUT DROP
+
+# Autoriser le trafic local
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A OUTPUT -o lo -j ACCEPT
+
+# Autoriser les connexions de la VM (remplacer <interface_VM> par l'interface de la VM NAT)
+iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i <interface_VM> -o eth0 -j ACCEPT
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+
+# Autoriser uniquement le trafic DNS, HTTP, et HTTPS sortant
+iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
+iptables -A OUTPUT -p tcp --dport 53 -j ACCEPT
+iptables -A OUTPUT -p tcp --dport 80 -j ACCEPT
+iptables -A OUTPUT -p tcp --dport 443 -j ACCEPT
+6. Désactiver les services inutiles
+Désactiver les services non nécessaires :
+
+bash
+Copier le code
+systemctl stop avahi-daemon smbd nmbd hostapd dnsmasq cups bluetooth
+systemctl disable avahi-daemon smbd nmbd hostapd dnsmasq cups bluetooth
+apt remove avahi-daemon samba hostapd dnsmasq cups bluetooth -y
+Vérifier les services actifs pour en désactiver d'autres si nécessaire :
+
+bash
+Copier le code
+systemctl list-units --type=service
+Ce guide est maintenant complet et prêt à l'emploi. Si un point nécessite des ajustements, fais-le-moi savoir !
+
+
+
+
+
+
+Vous avez dit :
+Tu a mis pour rajouter wwan au device
+ChatGPT a dit :
+ChatGPT
+Effectivement, je vais corriger et préciser la configuration pour le WWAN (interface mobile ou modem). Voici le correctif et la section finale, prête pour être copiée.
+
+1. Configurer le WWAN avec une adresse MAC aléatoire
+1. Modifier /etc/NetworkManager/NetworkManager.conf :
+Ajoutez la configuration suivante sous [device] pour s'assurer que toutes les interfaces utilisent une adresse MAC aléatoire, y compris le WWAN :
+
+bash
+Copier le code
+echo -e "[device]\nwifi.scan-rand-mac-address=yes\nwwan.scan-rand-mac-address=yes" >> /etc/NetworkManager/NetworkManager.conf
+2. Ajouter une configuration spécifique pour la connexion WWAN :
+Si votre interface WWAN est configurée via nmcli, appliquez ces modifications à la connexion correspondante :
+
+bash
+Copier le code
+nmcli connection modify <nom_de_la_connexion> 802-11-wireless.mac-address-randomization 1
+nmcli connection modify <nom_de_la_connexion> 802-11-wireless.cloned-mac-address random
+Si le WWAN n'utilise pas directement le Wi-Fi (souvent le cas pour les modems mobiles), vous pouvez tester l'application aléatoire avec cette commande :
+
+bash
+Copier le code
+nmcli connection modify <nom_de_la_connexion> 802-3-ethernet.cloned-mac-address random
+3. Redémarrer NetworkManager :
+bash
+Copier le code
+systemctl restart NetworkManager
+Si tu as un doute spécifique ou une erreur liée au WWAN, indique-le-moi pour que je puisse ajuster en fonction des retours exacts de la configuration.
+
+
+
+
+
+
+Vous avez dit :
+Et ça ces pas des script ??? Donne en manuel !!!
+ChatGPT a dit :
+ChatGPT
+D'accord, voici une version manuelle complète, sans commandes d'ajout automatisées. Tout ce qui doit être fait est clairement indiqué pour que tu puisses copier-coller les modifications directement dans les fichiers ou exécuter les commandes nécessaires une à une.
+
+1. Configurer le WWAN avec une adresse MAC aléatoire
+Modifier le fichier /etc/NetworkManager/NetworkManager.conf :
+Ouvre le fichier :
+bash
+Copier le code
+nano /etc/NetworkManager/NetworkManager.conf
+Ajoute ou modifie la section suivante :
+bash
+Copier le code
+[device]
+wifi.scan-rand-mac-address=yes
+wwan.scan-rand-mac-address=yes
+Sauvegarde avec Ctrl+O et quitte avec Ctrl+X.
+Modifier la configuration spécifique pour le WWAN :
+Ouvre le fichier correspondant à ta connexion dans /etc/NetworkManager/system-connections/. Par exemple :
+bash
+Copier le code
+nano /etc/NetworkManager/system-connections/<nom_de_la_connexion>
+Ajoute ou modifie les paramètres suivants dans la section appropriée :
+css
+Copier le code
+[ethernet]
+cloned-mac-address=random
+ou, si c'est une connexion Wi-Fi (rarement le cas pour un WWAN) :
+css
+Copier le code
+[wifi]
+mac-address-randomization=random
+Sauvegarde et quitte.
+Redémarre NetworkManager :
+bash
+Copier le code
+systemctl restart NetworkManager
+2. Désactiver complètement IPv6
+Modifier /etc/sysctl.conf :
+Ouvre le fichier :
+bash
+Copier le code
+nano /etc/sysctl.conf
+Ajoute ou remplace les lignes suivantes :
+python
+Copier le code
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+net.ipv6.conf.lo.disable_ipv6 = 1
+net.ipv6.conf.all.forwarding = 0
+net.ipv6.conf.all.accept_ra = 0
+net.ipv6.conf.default.accept_ra = 0
+Sauvegarde et quitte.
+Modifier Grub pour désactiver IPv6 au niveau du kernel :
+Ouvre le fichier Grub :
+bash
+Copier le code
+nano /etc/default/grub
+Modifie ou ajoute cette ligne :
+makefile
+Copier le code
+GRUB_CMDLINE_LINUX="ipv6.disable=1"
+Sauvegarde et quitte.
+Mets à jour Grub :
+bash
+Copier le code
+update-grub
+Désactiver IPv6 dans NetworkManager :
+Ouvre le fichier /etc/NetworkManager/NetworkManager.conf :
+bash
+Copier le code
+nano /etc/NetworkManager/NetworkManager.conf
+Ajoute ou modifie la section suivante :
+csharp
+Copier le code
+[connection]
+ipv6.method=ignore
+Sauvegarde et quitte.
+Appliquer immédiatement les changements :
+bash
+Copier le code
+sysctl -p
+3. Désactiver le forwarding et optimiser /etc/sysctl.conf
+Modifier /etc/sysctl.conf :
+Ouvre le fichier :
+bash
+Copier le code
+nano /etc/sysctl.conf
+Ajoute ou remplace les lignes suivantes pour désactiver le forwarding et ajouter des optimisations :
+python
+Copier le code
+# Désactiver le forwarding
+net.ipv4.ip_forward = 0
+net.ipv6.conf.all.forwarding = 0
+
+# Désactiver ICMP redirects
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv6.conf.all.accept_redirects = 0
+net.ipv6.conf.default.accept_redirects = 0
+
+# Désactiver source routing
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv4.conf.default.accept_source_route = 0
+net.ipv6.conf.all.accept_source_route = 0
+net.ipv6.conf.default.accept_source_route = 0
+
+# Activer la protection SYN
+net.ipv4.tcp_syncookies = 1
+
+# Activer la protection contre les attaques broadcast
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+
+# Activer la protection contre les attaques d'arp poisoning
+net.ipv4.conf.all.arp_filter = 1
+net.ipv4.conf.default.arp_filter = 1
+
+# Limiter le backlog SYN
+net.ipv4.tcp_max_syn_backlog = 2048
+
+# Limiter le nombre de connexions
+net.core.somaxconn = 1024
+Sauvegarde et quitte.
+Appliquer immédiatement les changements :
+bash
+Copier le code
+sysctl -p
+4. Désactiver LLMNR et mDNS
+Modifier /etc/systemd/resolved.conf :
+Ouvre le fichier :
+bash
+Copier le code
+nano /etc/systemd/resolved.conf
+Ajoute ou modifie les lignes suivantes :
+makefile
+Copier le code
+[Resolve]
+LLMNR=no
+MulticastDNS=no
+DNSOverTLS=no
+Cache=no
+Sauvegarde et quitte.
+Redémarrer systemd-resolved :
+bash
+Copier le code
+systemctl restart systemd-resolved
+5. Configurer iptables pour NAT et la VM
+Ajouter les règles iptables :
+Exécute les commandes suivantes :
+bash
+Copier le code
+iptables -F
+iptables -t nat -F
+iptables -X
+
+# Bloquer tout par défaut
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+iptables -P OUTPUT DROP
+
+# Autoriser le trafic local
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A OUTPUT -o lo -j ACCEPT
+
+# Autoriser les connexions de la VM (remplace <interface_VM> par l'interface NAT)
+iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i <interface_VM> -o eth0 -j ACCEPT
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+
+# Autoriser uniquement le trafic DNS, HTTP, et HTTPS sortant
+iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
+iptables -A OUTPUT -p tcp --dport 53 -j ACCEPT
+iptables -A OUTPUT -p tcp --dport 80 -j ACCEPT
+iptables -A OUTPUT -p tcp --dport 443 -j ACCEPT
+6. Désactiver les services inutiles
+Désactive les services inutiles :
+bash
+Copier le code
+systemctl stop avahi-daemon smbd nmbd hostapd dnsmasq cups bluetooth
+systemctl disable avahi-daemon smbd nmbd hostapd dnsmasq cups bluetooth
+Si certains services ne sont pas nécessaires, supprime-les :
+bash
+Copier le code
+apt remove avahi-daemon samba hostapd dnsmasq cups bluetooth -y
+Cette version est totalement manuelle. Indique-moi si certains détails ou instructions doivent être clarifiés !
+
+
+
+
+
+
+
+
+
+
+
+
+ChatGPT peut faire des erreurs. Envisagez de vérifier les informations importantes
