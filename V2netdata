@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# ================================
+# INSTALLATION ET CONFIGURATION DE NETDATA
+# ================================
+
+# Étape 1 : Installer les dépendances nécessaires
+echo "Installation des dépendances nécessaires pour Netdata..."
+sudo apt update
+sudo apt install -y curl python3-pip
+
+# Étape 2 : Télécharger et installer Netdata
+echo "Téléchargement et installation de Netdata..."
+bash <(curl -Ss https://my-netdata.io/kickstart.sh)
+
+# Étape 3 : Démarrer le service Netdata
+echo "Démarrage de Netdata..."
+sudo systemctl enable netdata
+sudo systemctl start netdata
+
+# Étape 4 : Configuration de l'accès
+echo "Configuration de l'accès à Netdata..."
+sudo ufw allow 19999
+
+echo "Netdata est maintenant installé et accessible à l'adresse suivante :"
+echo "http://<votre_ip>:19999
