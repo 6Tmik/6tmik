@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# ================================
+# RENFORCEMENT DE LA SÉCURITÉ
+# ================================
+
+# Étape 1 : Installation et configuration de Nagios
+configure_nagios() {
+    echo "Installation de Nagios..."
+    sudo apt install -y nagios-nrpe-server nagios-plugins
+    echo "Configuration de Nagios NRPE..."
+    sudo mv /etc/nagios/nrpe.cfg /etc/nagios/nrpe.cfg.backup
+    cat <<EOF | sudo tee /etc/nagios/nrpe.cfg
+allowed_hosts=127.0.0.1,192.168.56.1
+command[check_users]=/usr/lib/nagios/plugins/check_users -w 5 -c 10
+command[check_load]=/usr/lib/nagios/plugins/check_load -w 0.5,0.7,0.9 -c 0.7,0.9,1.0
+command[check_disk]=/usr/lib/nagios/plugins/check_disk -w 20% -c 10% -p /
+EOF
+    sudo systemctl restart nagios-nrpe-server
+    echo "Nagios configuré pour surveiller l'hôte."
+}
+
+# Étape 2 : Installation et configuration d’Auditd
+configure_auditd() {
+    echo "Installation d'Auditd..."
+    sudo apt install -y auditd audispd-plugins
+    echo "Configuration d'Auditd pour surveiller les fichiers critiques..."
+    cat <<EOF | sudo tee /etc/audit/rules.d/audit.rules
+-w /etc/passwd -p wa -k passwd_changes
+-w /etc/shadow -p wa -k shadow_changes
+-w /var/log/auth.log -p wa -k auth_changes
+EOF
+    sudo systemctl restart auditd
+    echo "Auditd configuré pour surveiller les fichiers critiques."
+}
+
+# Étape 3 : Installation et configuration de Tripwire
+configure_tripwire() {
+    echo "Installation de Tripwire..."
+    sudo apt install -y tripwire
+    echo "Initialisation de Tripwire..."
+    sudo tripwire --init
+    echo "Tripwire est prêt. Utilisez 'tripwire --check' pour vérifier l'intégrité des fichiers."
+}
+
+# Étape 4 : Tests et vérifications
+run_tests() {
+    echo "Tests de sécurité en cours..."
+    echo "Vérification des règles d'Auditd..."
+    sudo auditctl -l
+    echo "Vérification de l'intégrité des fichiers avec Tripwire..."
+    sudo tripwire --check
+    echo "Tests terminés. Consultez les logs pour plus de détails."
+}
+
+# Exécution des fonctions
+configure_nagios
+configure_auditd
+configure_tripwire
+run_tests
+
+echo "Renforcement terminé. Votre système est prêt avec surveillance et alertes activées.
