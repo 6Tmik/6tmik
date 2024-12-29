@@ -1,0 +1,54 @@
+#!/bin/bash
+
+# ================================
+# INSTALLATION ET CONFIGURATION DE HONEYD
+# ================================
+# Instructions :
+# 1. Honeyd simule plusieurs hôtes et services sur un réseau pour attirer les attaquants.
+# 2. Commandes utiles :
+#    - Démarrer Honeyd : sudo honeyd -f /etc/honeyd.conf -i <interface>
+#    - Modifier la configuration : sudo nano /etc/honeyd.conf
+#    - Consulter les logs des activités : sudo less /var/log/honeyd.log
+# 3. Configuration typique :
+#    - Fichier de configuration : /etc/honeyd.conf
+#    - Logs enregistrés dans : /var/log/honeyd.log
+# 4. Exemple de services simulés :
+#    - Serveur web (HTTP) sur le port 80.
+#    - Serveur SSH sur le port 22.
+#    - Serveur HTTPS sur le port 443.
+# 5. Simulez plusieurs hôtes avec des adresses IP spécifiques :
+#    - Exemple dans ce script : 192.168.1.100.
+
+# Étape 1 : Installer Honeyd
+echo "Installation de Honeyd..."
+sudo apt update
+sudo apt install -y honeyd
+
+# Étape 2 : Créer un fichier de configuration pour Honeyd
+echo "Création du fichier de configuration pour Honeyd..."
+cat <<EOF | sudo tee /etc/honeyd.conf
+# Fichier de configuration pour Honeyd
+
+# Simuler un serveur web vulnérable
+create template
+set template personality "Apache 2.x"
+add template tcp port 80 open
+add template tcp port 22 open
+add template tcp port 443 open
+
+# Attacher un hôte simulé
+bind 192.168.1.100 template
+EOF
+
+# Étape 3 : Configurer les logs pour Honeyd
+echo "Configuration des logs pour Honeyd..."
+sudo mkdir -p /var/log/honeyd
+sudo touch /var/log/honeyd.log
+sudo chmod 644 /var/log/honeyd.log
+
+# Étape 4 : Lancer Honeyd
+echo "Lancement de Honeyd avec la configuration..."
+sudo honeyd -f /etc/honeyd.conf -i eth0 > /var/log/honeyd.log 2>&1 &
+
+echo "Honeyd est maintenant en cours d'exécution."
+echo "Consultez les logs dans /var/log/honeyd.log pour voir les activités enregistrées.
