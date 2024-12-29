@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# ================================
+# INSTALLATION ET CONFIGURATION DE SURICATA
+# ================================
+
+# Étape 1 : Mise à jour du système et installation de Suricata
+echo "Mise à jour du système et installation de Suricata..."
+sudo apt update
+sudo apt install -y suricata
+
+# Étape 2 : Configurer l'interface réseau à surveiller
+echo "Configuration de Suricata pour surveiller l'interface réseau..."
+INTERFACE=$(ip -o -4 route show to default | awk '{print $5}')
+echo "Interface détectée : $INTERFACE"
+
+sudo sed -i "s|^ *interface:.*|  interface: $INTERFACE|" /etc/suricata/suricata.yaml
+
+# Étape 3 : Activer le mode IDS (intrusion detection system)
+echo "Activation du mode IDS..."
+sudo sed -i 's|#RUN=yes|RUN=yes|' /etc/default/suricata
+
+# Étape 4 : Démarrer et activer Suricata
+echo "Démarrage de Suricata..."
+sudo systemctl enable suricata
+sudo systemctl start suricata
+
+# Étape 5 : Téléchargement des règles de détection
+echo "Téléchargement des règles de détection..."
+sudo apt install -y python3-pip
+sudo pip3 install suricata-update
+sudo suricata-update
+sudo systemctl restart suricata
+
+# Étape 6 : Configuration d'iptables pour rediriger le trafic (optionnel pour IPS)
+echo "Configuration d'iptables pour rediriger le trafic réseau..."
+sudo iptables -I INPUT -j NFQUEUE
+sudo iptables -I OUTPUT -j NFQUEUE
+sudo iptables -I FORWARD -j NFQUEUE
+sudo iptables-save > /etc/iptables/rules.v4
+
+echo "Suricata est maintenant configuré et en cours d'exécution."
+echo "Les logs sont disponibles dans /var/log/suricata/.
