@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# ================================
+# INSTALLATION ET CONFIGURATION DE OPENVAS
+# ================================
+# Instructions :
+# 1. OpenVAS est utilisé pour effectuer des scans de vulnérabilités approfondis.
+# 2. Commandes utiles :
+#    - Initialiser OpenVAS : sudo gvm-setup
+#    - Démarrer OpenVAS : sudo gvm-start
+#    - Arrêter OpenVAS : sudo gvm-stop
+#    - Accéder à l'interface web : http://<votre_ip>:9392
+# 3. Utilisez les identifiants générés par `gvm-setup` pour accéder à l'interface.
+
+# Étape 1 : Installer OpenVAS
+echo "Installation de OpenVAS..."
+sudo apt update
+sudo apt install -y openvas
+
+# Étape 2 : Initialiser OpenVAS
+echo "Initialisation de OpenVAS (cela peut prendre un certain temps)..."
+sudo gvm-setup
+
+# Étape 3 : Démarrer OpenVAS
+echo "Démarrage de OpenVAS..."
+sudo gvm-start
+
+echo "OpenVAS est maintenant installé et configuré."
+echo "Accédez à l'interface web via : http://<votre_ip>:9392"
+echo "Utilisez les identifiants générés lors de l'initialisation.
