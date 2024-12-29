@@ -14,6 +14,7 @@ bash config.sh
 
 ./forensic.sh
 
+./tor.sh
 <!--
 **6Tmik/6tmik** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
@@ -21,14 +22,29 @@ bash config.sh
 
 
 
+
 ## 1. Exécuter le script
 
     Lancer la commande :
     
----
+
 bash addUser.sh
 ---
 
+
+
+
+
+cmd
+
+
+bash addUser.sh && ./iptables-setup.sh && ./config.sh && ./verifs.sh && ./clean.sh && ./forensic.sh && ./tor.sh
+---
+
+cmd copilot
+
+bash co_addUser.sh && bash co_iptables-setup.sh && bash co_config.sh && bash co_verifs.sh && bash co_clean.sh && bash co_forensic.sh && bash co_tor.sh
+---
 ## 2. Configurer avant exécution
 Modifier ces variables dans le script si nécessaire :
 - Utilisateur restreint : USER_SUBB="subb"
