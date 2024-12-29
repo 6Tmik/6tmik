@@ -1,0 +1,44 @@
+# Indications :
+# sudo nano /etc/apparmor.d/usr.lib.virtualbox
+# sudo apparmor_parser -r /etc/apparmor.d/usr.lib.virtualbox
+# sudo aa-status
+# sudo journalctl -e | grep 'apparmor'
+
+#include <tunables/global>
+
+profile /usr/lib/virtualbox/** {
+  # Permettre toutes les actions normales pour VirtualBox
+  capability ipc_lock,
+  capability sys_admin,
+  capability sys_resource,
+
+  # Accès aux fichiers nécessaires
+  /usr/lib/virtualbox/** rix,
+  /usr/share/virtualbox/** rix,
+  /usr/bin/VBox* rix,
+
+  # Autoriser la gestion des périphériques
+  /dev/vboxdrv rw,
+  /dev/vboxdrvu rw,
+  /dev/vboxnetctl rw,
+  /dev/net/tun rw,
+
+  # Accès aux fichiers utilisateur (limitez selon vos besoins)
+  owner @{HOME}/VirtualBox VMs/** rwk,
+  owner @{HOME}/.config/VirtualBox/** rwk,
+
+  # Accès réseau
+  network inet,
+  network inet6,
+  network raw,
+  network packet,
+
+  # Accès aux sockets UNIX
+  unix (send, receive),
+
+  # Journalisation des logs
+  /var/log/** rwk,
+
+  # Tout le reste est interdit
+  deny / rw,
+  deny /** rw,
