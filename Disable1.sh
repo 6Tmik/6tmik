@@ -47,8 +47,42 @@ sudo chmod 440 /etc/sudoers
 sudo chown root:root /etc/sudoers
 echo "Permissions des fichiers critiques mises à jour."
 
+
+echo "### Script 1 terminé ###"
+
+
+echo "### Script 2 : Gestion simplifiée des services ###"
+
+# Bloc 1 : Vérification des services Apache, MySQL, et PHP
+echo "Bloc 1 : Vérification des services Web (Apache, MySQL, PHP)..."
+if dpkg -l | grep -q apache2; then
+  echo "Apache2 est installé."
+else
+  echo "Apache2 n'est pas installé."
+fi
+
+if dpkg -l | grep -q mysql; then
+  echo "MySQL est installé."
+else
+  echo "MySQL n'est pas installé."
+fi
+
+if php -v &>/dev/null; then
+  php_version=$(php -v | head -n 1)
+  echo "PHP est installé : $php_version"
+else
+  echo "PHP n'est pas installé."
+fi
+
+# Bloc 2 : Désactivation de SSH si inutile
+echo "Bloc 2 : Désactivation de SSH..."
+sudo systemctl disable ssh.service
+sudo systemctl stop ssh.service
+sudo apt remove --purge openssh-server -y
+echo "SSH désactivé."
+
 # Bloc 11 : Vérification des services actifs
 echo "Bloc 11 : Vérification des services actifs après configuration..."
 systemctl list-units --type=service --state=running
 
-echo "### Script 1 terminé ###"
+echo "### Script 2 terminé ###"
