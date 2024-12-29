@@ -81,5 +81,20 @@ chmod +x $CRON_FILE
 
 log_message "Le cron est configuré pour une exécution quotidienne."
 
+
+
+# Bloc 1 : Installation de syslog si absent
+echo "Bloc 1 : Installation de syslog si nécessaire..."
+if ! dpkg -l | grep -q rsyslog; then
+  echo "Syslog non installé. Installation en cours..."
+  sudo apt update
+  sudo apt install rsyslog -y
+  sudo systemctl enable rsyslog.service
+  sudo systemctl start rsyslog.service
+else
+  echo "Syslog déjà installé."
+fi
+
+
 # Étape 4 : Résumé
 log_message "Script terminé avec succès. Tous les outils ont été exécutés, et la journalisation est disponible dans $LOG_FILE.
