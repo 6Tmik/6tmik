@@ -1,18 +1,18 @@
 ## Hi there 👋
 
-
+# Guide d'utilisation
 
 bash addUser.sh
 bash iptables-setup.sh
 bash config.sh
-
+./verifs.sh
 
 <!--
 **6Tmik/6tmik** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
 -->
 
-# Guide d'utilisation - addUser.sh
+
 
 ## 1. Exécuter le script
 
