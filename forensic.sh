@@ -20,6 +20,46 @@ log_message "Début de l'exécution du script."
 log_message "Mise à jour des dépôts et installation des outils requis..."
 apt update -y
 
+
+# Bloc 1 : Installation de syslog si absent
+echo "Bloc 1 : Installation de syslog si nécessaire..."
+if ! dpkg -l | grep -q rsyslog; then
+  echo "Syslog non installé. Installation en cours..."
+  sudo apt update
+  sudo apt install rsyslog -y
+  sudo systemctl enable rsyslog.service
+  sudo systemctl start rsyslog.service
+else
+  echo "Syslog déjà installé."
+fi
+
+# Installation d'iptables-persistent et sauvegarde des règles IPv4 et IPv6
+log_message "Installation d'iptables-persistent et configuration des règles persistantes..."
+
+# Vérifier si iptables-persistent est déjà installé
+if ! dpkg -l | grep -q iptables-persistent; then
+    apt update && apt install -y iptables-persistent
+    log_message "iptables-persistent installé avec succès."
+else
+    log_message "iptables-persistent est déjà installé."
+fi
+
+# Sauvegarde des règles IPv4 et IPv6
+RULES_V4="/etc/iptables/rules.v4"
+RULES_V6="/etc/iptables/rules.v6"
+
+log_message "Sauvegarde des règles IPv4 dans $RULES_V4..."
+iptables-save > "$RULES_V4" && log_message "Règles IPv4 sauvegardées avec succès."
+
+log_message "Sauvegarde des règles IPv6 dans $RULES_V6..."
+ip6tables-save > "$RULES_V6" && log_message "Règles IPv6 sauvegardées avec succès."
+
+# Redémarrage des services pour appliquer les règles au démarrage
+log_message "Redémarrage des services iptables-persistent..."
+systemctl restart netfilter-persistent && log_message "Service iptables-persistent redémarré avec succès."
+
+
+
 TOOLS=(
     "lynis"
     "rkhunter"
@@ -83,17 +123,6 @@ log_message "Le cron est configuré pour une exécution quotidienne."
 
 
 
-# Bloc 1 : Installation de syslog si absent
-echo "Bloc 1 : Installation de syslog si nécessaire..."
-if ! dpkg -l | grep -q rsyslog; then
-  echo "Syslog non installé. Installation en cours..."
-  sudo apt update
-  sudo apt install rsyslog -y
-  sudo systemctl enable rsyslog.service
-  sudo systemctl start rsyslog.service
-else
-  echo "Syslog déjà installé."
-fi
 
 
 # Étape 4 : Résumé
