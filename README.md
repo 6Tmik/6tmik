@@ -54,4 +54,82 @@ echo "jsu:NouveauMotDePasse" | chpasswd
 
 
 
-  
+
+
+  # Script de configuration des règles iptables (IPv4 et IPv6)
+
+---
+
+## Instructions
+
+### 1. Exécuter le script
+
+Lancer la commande suivante en tant que root :  
+```bash
+
+bash iptables-setup.sh
+
+
+---
+
+2. Configurer l'interface réseau
+
+Remplacez la variable INTERFACE="eth0" dans le script par le nom de votre interface réseau connectée à Internet.
+Pour trouver le nom de votre interface réseau, utilisez la commande suivante :
+
+ip link show
+
+Cherchez une interface marquée comme UP (par exemple : eth0, wwan0, tun0).
+
+
+---
+
+3. Activer le routage NAT
+
+Ajoutez les lignes suivantes dans le fichier /etc/sysctl.conf :
+
+net.ipv4.ip_forward=1
+net.ipv6.conf.all.forwarding=1
+
+Appliquez immédiatement les changements avec :
+
+sudo sysctl -w net.ipv4.ip_forward=1
+sudo sysctl -w net.ipv6.conf.all.forwarding=1
+
+
+---
+
+4. Installer iptables-persistent
+
+Pour rendre les règles persistantes après redémarrage, installez iptables-persistent :
+
+sudo apt install iptables-persistent
+
+
+---
+
+5. Vérification des règles
+
+Après exécution du script, utilisez les commandes suivantes pour vérifier les règles appliquées :
+
+Règles IPv4
+
+sudo iptables -L -v --line-numbers
+sudo iptables -t nat -L -v --line-numbers
+
+Règles IPv6
+
+sudo ip6tables -L -v --line-numbers
+sudo ip6tables -t nat -L -v --line-numbers
+
+
+---
+
+Résumé
+
+Ce script configure des règles sécurisées pour IPv4 et IPv6 et supporte les fonctionnalités NAT pour les machines virtuelles.
+Si des ajustements ou des fonctionnalités supplémentaires sont nécessaires, faites-le savoir !
+
+
+
+
