@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# ================================
+# INSTALLATION ET CONFIGURATION DE FSCRYPT
+# ================================
+# Instructions :
+# 1. fscrypt permet de chiffrer des répertoires spécifiques pour protéger vos données.
+# 2. Commandes utiles :
+#    - Initialiser fscrypt : sudo fscrypt setup
+#    - Protéger un répertoire : sudo fscrypt encrypt <chemin_du_répertoire>
+#    - Déverrouiller un répertoire : sudo fscrypt unlock <chemin_du_répertoire>
+#    - Verrouiller un répertoire : sudo fscrypt lock <chemin_du_répertoire>
+# 3. Configuration par défaut :
+#    - fscrypt utilise la fonctionnalité de chiffrement natif du noyau.
+# 4. Répertoires typiques à chiffrer :
+#    - ~/Documents
+#    - ~/Secrets
+#    - Toute donnée sensible.
+
+# Étape 1 : Installer fscrypt et ses dépendances
+echo "Installation de fscrypt et des outils nécessaires..."
+sudo apt update
+sudo apt install -y fscrypt
+
+# Étape 2 : Activer le support de chiffrement natif (ext4)
+echo "Configuration du support de chiffrement pour ext4..."
+sudo tune2fs -O encrypt /dev/$(df / | tail -1 | awk '{print $1}')
+
+# Étape 3 : Initialiser fscrypt
+echo "Initialisation de fscrypt..."
+sudo fscrypt setup
+
+# Étape 4 : Créer et chiffrer un répertoire de test
+ENCRYPTED_DIR=~/EncryptedData
+echo "Création et chiffrement d'un répertoire de test : $ENCRYPTED_DIR..."
+mkdir -p "$ENCRYPTED_DIR"
+sudo fscrypt encrypt "$ENCRYPTED_DIR" --name="TestEncryption"
+
+echo "Répertoire chiffré avec succès : $ENCRYPTED_DIR"
+echo "Pour déverrouiller : sudo fscrypt unlock $ENCRYPTED_DIR"
+echo "Pour verrouiller : sudo fscrypt lock $ENCRYPTED_DIR
