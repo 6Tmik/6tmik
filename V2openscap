@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# ================================
+# INSTALLATION ET CONFIGURATION D'OpenSCAP
+# ================================
+
+# Étape 1 : Installer OpenSCAP et ses dépendances
+echo "Installation d'OpenSCAP..."
+sudo apt update
+sudo apt install -y libopenscap8 openscap-utils scap-security-guide
+
+# Étape 2 : Exécuter un scan de sécurité de base
+echo "Exécution d'un scan de conformité avec OpenSCAP..."
+sudo oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_standard \
+--results /tmp/scap-results.xml \
+--report /tmp/scap-report.html \
+/usr/share/xml/scap/ssg/content/ssg-debian.xml
+
+# Étape 3 : Générer un rapport HTML
+echo "Le rapport de conformité a été généré : /tmp/scap-report.html"
+echo "Ouvrez-le avec un navigateur pour consulter les résultats.
