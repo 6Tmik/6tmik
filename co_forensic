@@ -1,0 +1,110 @@
+#!/bin/bash
+
+# Vérification des droits root
+if [ "$(id -u)" -ne 0 ]; then
+    echo "Ce script doit être exécuté avec des privilèges root. Veuillez réessayer avec 'sudo'."
+    exit 1
+fi
+
+# Variables pour les logs
+LOG_FILE="/var/log/security_tools.log"
+
+# Fonction pour journaliser
+log_message() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
+}
+
+log_message "Début de l'exécution du script."
+
+# Mise à jour des dépôts
+log_message "Mise à jour des dépôts..."
+apt update -y
+
+# Fonction pour installer un outil si nécessaire
+install_tool() {
+    local TOOL="$1"
+    if ! dpkg -l | grep -q "^ii.*$TOOL"; then
+        log_message "Installation de $TOOL..."
+        apt install -y "$TOOL"
+    else
+        log_message "$TOOL est déjà installé."
+    fi
+}
+
+# Installation de syslog si absent
+log_message "Vérification de l'installation de syslog..."
+install_tool "rsyslog"
+systemctl enable rsyslog.service
+systemctl start rsyslog.service
+
+# Installation d'iptables-persistent et sauvegarde des règles IPv4 et IPv6
+log_message "Vérification de l'installation d'iptables-persistent..."
+install_tool "iptables-persistent"
+
+# Sauvegarde des règles IPv4 et IPv6
+RULES_V4="/etc/iptables/rules.v4"
+RULES_V6="/etc/iptables/rules.v6"
+
+log_message "Sauvegarde des règles IPv4 dans $RULES_V4..."
+iptables-save > "$RULES_V4" && log_message "Règles IPv4 sauvegardées avec succès."
+
+log_message "Sauvegarde des règles IPv6 dans $RULES_V6..."
+ip6tables-save > "$RULES_V6" && log_message "Règles IPv6 sauvegardées avec succès."
+
+# Redémarrage des services pour appliquer les règles au démarrage
+log_message "Redémarrage des services iptables-persistent..."
+systemctl restart netfilter-persistent && log_message "Service iptables-persistent redémarré avec succès."
+
+# Liste des outils de sécurité à installer
+TOOLS=(
+    "lynis"
+    "rkhunter"
+    "chkrootkit"
+    "logwatch"
+    "fail2ban"
+    "clamav"
+    "debsums"
+)
+
+# Installation des outils de sécurité
+for TOOL in "${TOOLS[@]}"; do
+    install_tool "$TOOL"
+done
+
+# Exécution des outils de sécurité
+log_message "Exécution des outils de sécurité..."
+
+run_tool() {
+    local TOOL_NAME="$1"
+    local TOOL_CMD="$2"
+    log_message "Exécution de $TOOL_NAME..."
+    eval "$TOOL_CMD" >> "$LOG_FILE" 2>&1
+}
+
+run_tool "Lynis" "lynis audit system --quick"
+run_tool "RKHunter" "rkhunter --update && rkhunter --check --skip-keypress"
+run_tool "Chkrootkit" "chkrootkit"
+run_tool "Fail2ban" "fail2ban-client status"
+run_tool "ClamAV" "clamscan --infected --recursive /"
+run_tool "Debsums" "debsums -s"
+run_tool "Logwatch" "logwatch --output file --filename /var/log/logwatch.log --detail high"
+
+# Configuration du cron pour l'exécution quotidienne des outils
+log_message "Configuration du cron pour l'exécution quotidienne des outils..."
+CRON_FILE="/etc/cron.daily/security_audit"
+cat << EOF > $CRON_FILE
+#!/bin/bash
+rkhunter --update
+rkhunter --check --skip-keypress >> /var/log/rkhunter.log 2>&1
+chkrootkit >> /var/log/chkrootkit.log 2>&1
+lynis audit system --quick >> /var/log/lynis.log 2>&1
+clamscan --infected --recursive / >> /var/log/clamav.log 2>&1
+debsums -s >> /var/log/debsums.log 2>&1
+logwatch --output file --filename /var/log/logwatch.log --detail high >> /var/log/logwatch.log 2>&1
+EOF
+chmod +x $CRON_FILE
+
+log_message "Le cron est configuré pour une exécution quotidienne."
+
+# Résumé
+log_message "Script terminé avec succès. Tous les outils ont été exécutés, et la journalisation est disponible dans $LOG_FILE.
