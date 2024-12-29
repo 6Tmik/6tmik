@@ -7,7 +7,7 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 0
 fi
 
-echo "Début de la configuration réseau et sécurité..."
+echo "Démarrage du script de configuration réseau et services..."
 
 # Étape 1 : Sauvegarde des fichiers critiques
 echo "Sauvegarde des fichiers de configuration..."
@@ -27,7 +27,7 @@ for FILE in "${CONFIG_FILES[@]}"; do
     fi
 done
 
-# Fonction : pause et modification manuelle
+# Fonction pour pause et modification
 pause_and_edit() {
     local FILE="$1"
     local CONTENT="$2"
@@ -41,19 +41,7 @@ pause_and_edit() {
     nano "$FILE"
 }
 
-# Étape 2 : Configuration de NetworkManager
-NETWORKMANAGER_CONFIG="/etc/NetworkManager/NetworkManager.conf"
-NETWORKMANAGER_CONTENT="[device]
-wifi.scan-rand-mac-address=yes
-
-[connection]
-wifi.cloned-mac-address=random
-ethernet.cloned-mac-address=random
-wwan.cloned-mac-address=random"
-
-pause_and_edit "$NETWORKMANAGER_CONFIG" "$NETWORKMANAGER_CONTENT"
-
-# Étape 3 : Configuration de sysctl.conf
+# Étape 2 : Configuration de sysctl.conf
 SYSCTL_CONFIG="/etc/sysctl.conf"
 SYSCTL_CONTENT="# Désactiver IPv6
 net.ipv6.conf.all.disable_ipv6 = 1
@@ -67,6 +55,19 @@ net.ipv4.conf.default.rp_filter = 1
 # Protection contre les SYN floods
 net.ipv4.tcp_syncookies = 1
 
+# Optimisation TCP
+net.ipv4.tcp_max_syn_backlog = 2048
+net.core.somaxconn = 1024
+net.core.netdev_max_backlog = 5000
+net.ipv4.tcp_rmem = 4096 87380 6291456
+net.ipv4.tcp_wmem = 4096 65536 6291456
+net.ipv4.tcp_window_scaling = 1
+
+# Protection avancée
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+net.ipv4.icmp_ignore_bogus_error_responses = 1
+net.ipv4.conf.all.log_martians = 1
+
 # Désactiver les redirections ICMP
 net.ipv4.conf.all.accept_redirects = 0
 net.ipv4.conf.default.accept_redirects = 0
@@ -74,11 +75,29 @@ net.ipv4.conf.all.send_redirects = 0
 
 # Désactiver les paquets source-routed
 net.ipv4.conf.all.accept_source_route = 0
-net.ipv4.conf.default.accept_source_route = 0"
+net.ipv4.conf.default.accept_source_route = 0
+
+# Renforcement du kernel
+kernel.randomize_va_space = 2
+fs.protected_symlinks = 1
+fs.protected_hardlinks = 1"
 
 pause_and_edit "$SYSCTL_CONFIG" "$SYSCTL_CONTENT"
 sysctl -p
 echo "Configuration sysctl appliquée."
+
+# Étape 3 : Configuration de NetworkManager.conf
+NETWORKMANAGER_CONFIG="/etc/NetworkManager/NetworkManager.conf"
+NETWORKMANAGER_CONTENT="[device]
+wifi.scan-rand-mac-address=yes
+
+[connection]
+wifi.cloned-mac-address=random
+ethernet.cloned-mac-address=random
+wwan.cloned-mac-address=random"
+
+pause_and_edit "$NETWORKMANAGER_CONFIG" "$NETWORKMANAGER_CONTENT"
+echo "Configuration de NetworkManager appliquée."
 
 # Étape 4 : Configuration de resolv.conf
 RESOLV_CONF="/etc/resolv.conf"
@@ -86,6 +105,7 @@ RESOLV_CONTENT="nameserver 9.9.9.9
 nameserver 1.1.1.1"
 
 pause_and_edit "$RESOLV_CONF" "$RESOLV_CONTENT"
+echo "Configuration de resolv.conf appliquée."
 
 # Étape 5 : Configuration de Fail2ban
 FAIL2BAN_CONFIG="/etc/fail2ban/jail.local"
@@ -125,4 +145,4 @@ for FILE in "${FILES_TO_VERIFY[@]}"; do
     cat "$FILE"
 done
 
-echo "Configuration complète. Veuillez vérifier les paramètres manuellement si nécessaire.
+echo "Configuration complète. Veuillez vérifier les paramètres manuellement si nécessaire."
