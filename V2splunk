@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# ================================
+# INSTALLATION ET CONFIGURATION DE SPLUNK
+# ================================
+
+# Étape 1 : Télécharger Splunk
+echo "Téléchargement de Splunk Community Edition..."
+wget -O splunk.deb https://download.splunk.com/products/splunk/releases/9.1.1/linux/splunk-9.1.1-64c3ccedaaff-linux-2.6-amd64.deb
+
+# Étape 2 : Installer Splunk
+echo "Installation de Splunk..."
+sudo dpkg -i splunk.deb
+
+# Étape 3 : Configurer les variables d'environnement Splunk
+echo "Configuration des variables d'environnement..."
+sudo /opt/splunk/bin/splunk enable boot-start --accept-license --answer-yes
+sudo /opt/splunk/bin/splunk start
+
+# Étape 4 : Ajouter Splunk à PATH pour une utilisation simple
+echo "Ajout de Splunk au PATH..."
+echo "export PATH=\$PATH:/opt/splunk/bin" >> ~/.bashrc
+source ~/.bashrc
+
+# Étape 5 : Configuration initiale via interface web
+echo "Splunk est maintenant installé. Accédez à l'interface web pour continuer :"
+echo "http://<votre_ip>:8000
