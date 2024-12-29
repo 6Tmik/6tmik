@@ -18,9 +18,10 @@ echo "Démarrage de Netdata..."
 sudo systemctl enable netdata
 sudo systemctl start netdata
 
-# Étape 4 : Configuration de l'accès
-echo "Configuration de l'accès à Netdata..."
-sudo ufw allow 19999
+# Étape 4 : Configurer iptables pour ouvrir le port 19999
+echo "Configuration d'iptables pour permettre l'accès à Netdata..."
+sudo iptables -A INPUT -p tcp --dport 19999 -j ACCEPT
+sudo iptables-save > /etc/iptables/rules.v4
 
 echo "Netdata est maintenant installé et accessible à l'adresse suivante :"
-echo "http://<votre_ip>:19999
+echo "http://<votre_ip>:19999"
