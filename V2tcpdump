@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# ================================
+# INSTALLATION ET UTILISATION DE TCPDUMP
+# ================================
+# Instructions :
+# 1. TCPDump permet de capturer et d'analyser le trafic réseau.
+# 2. Commandes utiles :
+#    - Capturer tout le trafic : sudo tcpdump -i <interface>
+#    - Capturer et enregistrer dans un fichier : sudo tcpdump -i <interface> -w fichier.pcap
+#    - Lire un fichier de capture : sudo tcpdump -r fichier.pcap
+#    - Filtrer le trafic par port : sudo tcpdump -i <interface> port 80
+#    - Filtrer le trafic par IP : sudo tcpdump -i <interface> host <adresse_ip>
+# 3. Les fichiers `.pcap` peuvent être analysés avec Wireshark pour une analyse avancée.
+
+# Étape 1 : Installer TCPDump
+echo "Installation de TCPDump..."
+sudo apt update
+sudo apt install -y tcpdump
+
+# Étape 2 : Capturer du trafic réseau (exemple)
+echo "Détection de l'interface réseau par défaut..."
+INTERFACE=$(ip -o -4 route show to default | awk '{print $5}')
+echo "Interface détectée : $INTERFACE"
+
+echo "Capture du trafic réseau sur l'interface $INTERFACE pendant 60 secondes..."
+sudo tcpdump -i "$INTERFACE" -w ~/capture.pcap -G 60
+
+echo "La capture a été enregistrée dans ~/capture.pcap."
+echo "Utilisez la commande suivante pour analyser : sudo tcpdump -r ~/capture.pcap
