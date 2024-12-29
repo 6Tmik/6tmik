@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# ================================
+# INSTALLATION ET UTILISATION DE NMAP
+# ================================
+# Instructions :
+# 1. Nmap est utilisé pour scanner des réseaux et détecter les ports/services actifs.
+# 2. Commandes utiles :
+#    - Scanner un hôte : sudo nmap <adresse_ip>
+#    - Scanner un réseau : sudo nmap -sP <plage_ip>
+#    - Scanner les ports ouverts : sudo nmap -sT <adresse_ip>
+#    - Scanner les vulnérabilités : sudo nmap --script vuln <adresse_ip>
+# 3. Exemples typiques :
+#    - Scanner un réseau local : sudo nmap -sP 192.168.1.0/24
+#    - Scanner les ports d'un hôte : sudo nmap -sT 192.168.1.1
+#    - Détecter les services actifs : sudo nmap -sV 192.168.1.1
+
+# Étape 1 : Installer Nmap
+echo "Installation de Nmap..."
+sudo apt update
+sudo apt install -y nmap
+
+# Étape 2 : Scanner un réseau local
+echo "Scan du réseau local (192.168.1.0/24)..."
+sudo nmap -sP 192.168.1.0/24 > ~/nmap_network_scan.txt
+echo "Résultats enregistrés dans ~/nmap_network_scan.txt"
+
+# Étape 3 : Scanner les ports d’un hôte
+echo "Scan des ports ouverts sur 192.168.1.1..."
+sudo nmap -sT 192.168.1.1 > ~/nmap_port_scan.txt
+echo "Résultats enregistrés dans ~/nmap_port_scan.txt"
+
+# Étape 4 : Scanner les vulnérabilités potentielles
+echo "Scan des vulnérabilités sur 192.168.1.1..."
+sudo nmap --script vuln 192.168.1.1 > ~/nmap_vuln_scan.txt
+echo "Résultats enregistrés dans ~/nmap_vuln_scan.txt"
+
+echo "Nmap est installé et les scans sont terminés. Consultez les fichiers de résultats dans votre répertoire personnel.
