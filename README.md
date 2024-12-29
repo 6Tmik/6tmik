@@ -3,9 +3,16 @@
 # Guide d'utilisation
 
 bash addUser.sh
+
 bash iptables-setup.sh
+
 bash config.sh
+
 ./verifs.sh
+
+./clean.sh
+
+./forensic.sh
 
 <!--
 **6Tmik/6tmik** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
