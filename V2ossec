@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# ================================
+# INSTALLATION ET CONFIGURATION D'OSSEC
+# ================================
+
+# Étape 1 : Télécharger OSSEC
+echo "Téléchargement d'OSSEC..."
+wget https://github.com/ossec/ossec-hids/archive/3.7.0.tar.gz -O ossec-hids.tar.gz
+tar -xzf ossec-hids.tar.gz
+cd ossec-hids-3.7.0
+
+# Étape 2 : Installer les dépendances nécessaires
+echo "Installation des dépendances nécessaires..."
+sudo apt update
+sudo apt install -y build-essential gcc make libc6 libevent-dev libssl-dev
+
+# Étape 3 : Installer OSSEC
+echo "Installation d'OSSEC..."
+sudo ./install.sh <<EOF
+server
+/var/ossec
+yes
+no
+no
+no
+EOF
+
+# Étape 4 : Configurer OSSEC pour surveiller les logs critiques
+echo "Configuration d'OSSEC pour surveiller les logs critiques..."
+sudo sed -i '/<directories>/a \    <log_alert_level>3</log_alert_level>' /var/ossec/etc/ossec.conf
+
+# Étape 5 : Démarrer OSSEC
+echo "Démarrage du service OSSEC..."
+sudo /var/ossec/bin/ossec-control start
+
+echo "OSSEC est maintenant installé et configuré. Les logs sont surveillés en temps réel.
