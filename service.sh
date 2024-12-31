@@ -19,4 +19,4 @@ check_user() {
 # Fonction : Lire une section du fichier de configuration
 read_section() {
     local section="$1"
-    awk -v section="[$section]" '$0 ~ section {flag=1; next} /
+    awk -v section="[$section]" '$0 ~ section {flag=1; next} /^
