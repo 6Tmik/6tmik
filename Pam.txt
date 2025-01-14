@@ -1,0 +1,148 @@
+Je comprends que vous souhaitez renforcer la sécurité de votre système en configurant correctement PAM pour prévenir les attaques répétées. Voici une démarche détaillée pour sécuriser votre système en utilisant les modules PAM appropriés.
+
+
+---
+
+1. Installation des modules nécessaires
+
+Assurez-vous que les modules pam_faillock et pam_pwquality sont installés sur votre système.
+
+Pour Debian/Ubuntu :
+
+sudo apt install libpam-modules libpam-pwquality
+
+Pour CentOS/RHEL :
+
+sudo yum install pam pam_pwquality
+
+
+
+---
+
+2. Configuration de pam_faillock pour limiter les tentatives de connexion échouées
+
+Le module pam_faillock permet de verrouiller temporairement un compte après un certain nombre de tentatives de connexion infructueuses, empêchant ainsi les attaques par force brute.
+
+Étapes de configuration :
+
+1. Sauvegardez les fichiers de configuration actuels :
+
+sudo cp /etc/pam.d/common-auth /etc/pam.d/common-auth.bak
+sudo cp /etc/pam.d/common-account /etc/pam.d/common-account.bak
+
+
+2. Modifiez le fichier /etc/pam.d/common-auth :
+
+Ouvrez le fichier avec un éditeur de texte en mode superutilisateur :
+
+sudo nano /etc/pam.d/common-auth
+
+Ajoutez les lignes suivantes au début du fichier :
+
+auth required pam_faillock.so preauth silent audit deny=3 unlock_time=600
+auth [default=die] pam_faillock.so authfail audit deny=3 unlock_time=600
+
+Explication des paramètres :
+
+deny=3 : Le compte est verrouillé après 3 tentatives échouées.
+
+unlock_time=600 : Le compte est déverrouillé automatiquement après 10 minutes (600 secondes).
+
+audit : Les tentatives échouées sont enregistrées dans les journaux du système.
+
+silent : Supprime les messages d'erreur pour l'utilisateur, rendant les attaques plus difficiles.
+
+
+
+
+3. Modifiez le fichier /etc/pam.d/common-account :
+
+Ouvrez le fichier avec un éditeur de texte en mode superutilisateur :
+
+sudo nano /etc/pam.d/common-account
+
+Ajoutez la ligne suivante à la fin du fichier :
+
+account required pam_faillock.so
+
+
+
+4. Redémarrez les services concernés :
+
+Si vous utilisez des services tels que SSH, redémarrez-les pour appliquer les modifications :
+
+sudo systemctl restart sshd
+
+
+
+
+
+---
+
+3. Configuration de pam_pwquality pour renforcer la complexité des mots de passe
+
+Le module pam_pwquality impose des règles de complexité pour les mots de passe, garantissant ainsi des mots de passe plus sécurisés.
+
+Étapes de configuration :
+
+1. Modifiez le fichier /etc/pam.d/common-password :
+
+Ouvrez le fichier avec un éditeur de texte en mode superutilisateur :
+
+sudo nano /etc/pam.d/common-password
+
+Recherchez la ligne contenant pam_pwquality.so. Si elle n'existe pas, ajoutez-la :
+
+password requisite pam_pwquality.so retry=3 minlen=12 difok=3
+
+Explication des paramètres :
+
+retry=3 : Permet à l'utilisateur de réessayer 3 fois en cas de mot de passe non conforme.
+
+minlen=12 : Exige une longueur minimale de 12 caractères pour le mot de passe.
+
+difok=3 : Le nouveau mot de passe doit différer d'au moins 3 caractères de l'ancien.
+
+
+
+
+2. Enregistrez et fermez le fichier.
+
+
+
+
+---
+
+4. Surveillance et gestion des tentatives de connexion échouées
+
+Utilisez la commande faillock pour surveiller et gérer les tentatives de connexion échouées.
+
+Afficher les tentatives échouées pour un utilisateur spécifique :
+
+sudo faillock --user nom_utilisateur
+
+Réinitialiser le compteur d'échecs pour un utilisateur :
+
+sudo faillock --user nom_utilisateur --reset
+
+Réinitialiser le compteur d'échecs pour tous les utilisateurs :
+
+sudo faillock --reset
+
+
+
+---
+
+5. Recommandations supplémentaires
+
+Désactiver les comptes inutilisés : Désactivez ou supprimez les comptes utilisateurs qui ne sont plus nécessaires pour réduire la surface d'attaque.
+
+Surveiller les journaux système : Vérifiez régulièrement les journaux, tels que /var/log/auth.log, pour détecter toute activité suspecte.
+
+Mettre à jour régulièrement le système : Assurez-vous que votre système et tous les paquets installés sont à jour avec les derniers correctifs de sécurité.
+
+
+
+---
+
+En appliquant ces configurations, vous renforcerez significativement la sécurité de votre système en limitant les tentatives de connexion échouées et en imposant des mots de passe robustes. Si vous avez besoin d'aide supplémentaire ou de précisions sur une étape spécifique, n'hésitez pas à demander.
