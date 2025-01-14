@@ -1,0 +1,147 @@
+Configurer Fail2Ban pour bloquer Apache
+
+Voici les étapes pour configurer Fail2Ban afin de protéger Apache contre les attaques, comme les tentatives de bruteforce sur l’authentification ou les scans malveillants.
+
+
+---
+
+1. Vérifiez les fichiers de log Apache
+
+Avant de configurer Fail2Ban, identifiez les fichiers de log utilisés par votre serveur Apache. Par défaut :
+
+Fichier des logs d'accès : /var/log/apache2/access.log
+
+Fichier des logs d'erreurs : /var/log/apache2/error.log
+
+
+
+---
+
+2. Ajouter une règle pour Apache dans Fail2Ban
+
+1. Éditez le fichier de configuration local :
+
+sudo nano /etc/fail2ban/jail.local
+
+
+2. Ajoutez les sections pour protéger Apache :
+
+a. Protéger l'authentification HTTP (Apache Auth)
+
+[apache-auth]
+enabled = true
+port = 80,443
+logpath = /var/log/apache2/error.log
+maxretry = 5
+bantime = 3600
+
+b. Protéger contre les attaques type bruteforce (Bad Bots)
+
+[apache-badbots]
+enabled = true
+port = 80,443
+logpath = /var/log/apache2/access.log
+maxretry = 10
+bantime = 3600
+filter = apache-badbots
+
+c. Protéger contre les scans ou requêtes malveillantes (PHP URL Injection, etc.)
+
+[apache-noscript]
+enabled = true
+port = 80,443
+logpath = /var/log/apache2/access.log
+maxretry = 5
+bantime = 3600
+filter = apache-noscript
+
+
+
+
+---
+
+3. Vérifiez les filtres Apache
+
+Les filtres Fail2Ban définissent les comportements malveillants à détecter. Ces fichiers sont stockés dans /etc/fail2ban/filter.d/. Par défaut, plusieurs filtres pour Apache sont déjà fournis.
+
+a. Exemple pour apache-badbots.conf
+
+Assurez-vous que le fichier /etc/fail2ban/filter.d/apache-badbots.conf contient les signatures des bots connus :
+
+[Definition]
+failregex = ^<HOST> .*?"GET .*?" 400
+ignoreregex =
+
+b. Exemple pour apache-noscript.conf
+
+Vérifiez ou créez le fichier /etc/fail2ban/filter.d/apache-noscript.conf pour détecter les tentatives de requêtes non autorisées :
+
+[Definition]
+failregex = ^<HOST> .*?"(GET|POST|HEAD).*?.(php|asp|exe|sh) .*?" 404
+ignoreregex =
+
+
+---
+
+4. Redémarrez Fail2Ban
+
+Appliquez vos nouvelles configurations en redémarrant Fail2Ban :
+
+sudo systemctl restart fail2ban
+
+
+---
+
+5. Vérifiez l'état de Fail2Ban
+
+1. Vérifiez les prisons actives :
+
+sudo fail2ban-client status
+
+
+2. Vérifiez les IP bannies pour Apache Auth :
+
+sudo fail2ban-client status apache-auth
+
+
+
+
+---
+
+6. Testez la configuration
+
+Pour tester que les règles fonctionnent :
+
+1. Faites une fausse tentative d'accès à une page protégée ou inexistante.
+
+
+2. Vérifiez les logs pour voir si l'IP a été bannie.
+
+
+
+
+---
+
+Résumé des commandes principales
+
+1. Éditer la configuration locale de Fail2Ban :
+
+sudo nano /etc/fail2ban/jail.local
+
+
+2. Redémarrer Fail2Ban après configuration :
+
+sudo systemctl restart fail2ban
+
+
+3. Vérifier les prisons actives et bannissements :
+
+sudo fail2ban-client status
+sudo fail2ban-client status apache-auth
+
+
+
+
+---
+
+Si vous avez besoin d'une configuration supplémentaire pour d'autres types d'attaques, dites-le-moi !
