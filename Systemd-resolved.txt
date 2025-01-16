@@ -1,0 +1,145 @@
+Non, systemd-resolved n'est pas un équivalent de DNSCrypt, mais un composant du système systemd qui gère la résolution de noms DNS et d'autres fonctionnalités liées au réseau. Voici une explication détaillée :
+
+
+---
+
+1. Qu'est-ce que systemd-resolved ?
+
+systemd-resolved est un service qui centralise la résolution DNS sur les systèmes basés sur systemd.
+
+Il agit comme un proxy DNS, interagissant entre les applications de votre système et les serveurs DNS.
+
+
+
+---
+
+2. Fonctionnalités principales
+
+Résolution DNS classique :
+
+Il intercepte les requêtes DNS provenant des applications et les envoie aux serveurs DNS configurés (ceux de votre box, de Google, ou de Cloudflare, par exemple).
+
+
+Support mDNS et LLMNR :
+
+Il peut résoudre les noms locaux via mDNS (Multicast DNS) et LLMNR (Link-Local Multicast Name Resolution), souvent utilisés pour découvrir des appareils dans un réseau local (ex. : imprimantes).
+
+
+DNSSEC (DNS Security Extensions) :
+
+Il peut valider les réponses DNS avec des signatures cryptographiques pour garantir leur authenticité.
+
+
+Cache DNS :
+
+systemd-resolved met en cache les réponses DNS pour accélérer les résolutions répétées.
+
+
+
+
+---
+
+3. Différences entre systemd-resolved et DNSCrypt
+
+
+---
+
+4. Comment savoir si systemd-resolved est actif ?
+
+Vérifiez le statut du service :
+
+systemctl status systemd-resolved
+
+Si actif, vous verrez une sortie indiquant qu'il écoute sur une adresse, par exemple 127.0.0.53.
+
+
+---
+
+5. Configuration et utilisation
+
+a. Fichier de configuration : /etc/systemd/resolved.conf
+
+Ce fichier vous permet de configurer systemd-resolved. Voici un exemple de configuration typique :
+
+[Resolve]
+DNS=1.1.1.1 8.8.8.8
+FallbackDNS=9.9.9.9
+DNSSEC=no
+MulticastDNS=no
+LLMNR=no
+Cache=yes
+
+DNS : Définit les serveurs DNS primaires.
+
+FallbackDNS : Serveurs DNS de secours si les DNS primaires échouent.
+
+DNSSEC : no désactive la validation DNSSEC.
+
+MulticastDNS : no désactive mDNS.
+
+LLMNR : no désactive LLMNR (peu sécurisé sur les réseaux modernes).
+
+Cache : Active le cache des requêtes DNS.
+
+
+Après avoir modifié ce fichier, redémarrez le service :
+
+sudo systemctl restart systemd-resolved
+
+
+---
+
+6. Intégration avec DNSCrypt
+
+Si vous utilisez DNSCrypt pour chiffrer vos requêtes DNS, vous pouvez configurer systemd-resolved pour qu'il fonctionne en complément :
+
+1. Configurez DNSCrypt pour écouter sur une adresse locale (par exemple, 127.0.2.1).
+
+
+2. Configurez systemd-resolved pour envoyer ses requêtes à DNSCrypt :
+
+Éditez /etc/systemd/resolved.conf :
+
+[Resolve]
+DNS=127.0.2.1
+DNSSEC=no
+
+Redémarrez les deux services :
+
+sudo systemctl restart systemd-resolved
+sudo systemctl restart dnscrypt-proxy
+
+
+
+
+
+---
+
+7. Désactiver systemd-resolved si non utilisé
+
+Si vous préférez utiliser uniquement DNSCrypt sans passer par systemd-resolved, vous pouvez désactiver ce dernier :
+
+1. Arrêtez et désactivez le service :
+
+sudo systemctl stop systemd-resolved
+sudo systemctl disable systemd-resolved
+
+
+2. Configurez manuellement vos serveurs DNS dans /etc/resolv.conf ou laissez DNSCrypt le gérer.
+
+
+
+
+---
+
+Résumé
+
+systemd-resolved est un gestionnaire DNS et proxy local qui prend en charge mDNS, DNS classique, DNSSEC, et met en cache les réponses DNS.
+
+Il n'effectue pas de chiffrement comme DNSCrypt mais peut être configuré pour travailler avec lui.
+
+Vous pouvez désactiver ou configurer systemd-resolved selon vos besoins, surtout si vous utilisez des solutions comme DNSCrypt pour une sécurité accrue.
+
+
+Si vous avez besoin d'aide pour une configuration spécifique, faites-le-moi savoir !
+
